@@ -20,7 +20,9 @@
           "status": "error",
           "startTime": "2026-07-23T09:11:40Z",
           "durationMs": 6420,
-          "attributes": { "agent.name": "checkout-agent" }
+          "attributes": {
+            "agent.name": "checkout-agent"
+          }
         },
         {
           "spanId": "spn_002",
@@ -31,7 +33,10 @@
           "status": "ok",
           "startTime": "2026-07-23T09:11:40Z",
           "durationMs": 640,
-          "attributes": { "model": "claude-sonnet-5", "tokens": 512 }
+          "attributes": {
+            "model": "claude-sonnet-5",
+            "tokens": 512
+          }
         },
         {
           "spanId": "spn_003",
@@ -42,7 +47,9 @@
           "status": "timeout",
           "startTime": "2026-07-23T09:11:41Z",
           "durationMs": 4200,
-          "attributes": { "source": "inventory-service" },
+          "attributes": {
+            "source": "inventory-service"
+          },
           "errorMessage": "upstream request exceeded 4s timeout"
         }
       ]
@@ -67,7 +74,9 @@
           "status": "ok",
           "startTime": "2026-07-23T08:40:55Z",
           "durationMs": 2310,
-          "attributes": { "agent.name": "summarizer-agent" }
+          "attributes": {
+            "agent.name": "summarizer-agent"
+          }
         },
         {
           "spanId": "spn_011",
@@ -78,12 +87,27 @@
           "status": "ok",
           "startTime": "2026-07-23T08:40:55Z",
           "durationMs": 2200,
-          "attributes": { "model": "claude-sonnet-5", "tokens": 940 }
+          "attributes": {
+            "model": "claude-sonnet-5",
+            "tokens": 940
+          }
         }
       ]
     }
   ],
   "alerts": [
+    {
+      "alertId": "alt_k1jbi4jgb",
+      "title": "LLM Latency Spike",
+      "severity": "critical",
+      "status": "open",
+      "agentName": "checkout-agent",
+      "ruleName": "LLM Latency Spike",
+      "traceId": "trc_4821",
+      "createdAt": "2026-07-23T16:00:00Z",
+      "updatedAt": "2026-07-23T16:36:39.709Z",
+      "summary": "LLM call in checkout-agent exceeded 5s response time threshold."
+    },
     {
       "alertId": "alt_01",
       "title": "Retrieval span timeout rate above threshold",
@@ -95,6 +119,21 @@
       "createdAt": "2026-07-23T09:12:00Z",
       "updatedAt": "2026-07-23T09:12:00Z",
       "summary": "12% of retrieval spans exceeded 3s over the last 15 minutes."
+    }
+  ],
+  "diagnoses": [
+    {
+      "diagnosisId": "diag_weokteujo",
+      "traceId": "trc_4821",
+      "alertId": "alt_k1jbi4jgb",
+      "createdAt": "2026-07-23T16:36:39.724Z",
+      "rootCause": "The execution step \"retrieval.fetch_inventory\" timed out after 4200ms.",
+      "confidence": 0.85,
+      "suggestedFix": "Verify the performance/latency of downstream dependency or increase the timeout value configuration (currently set to limit at 4200ms).",
+      "relatedSpanIds": [
+        "spn_001",
+        "spn_003"
+      ]
     }
   ]
 }

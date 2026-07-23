@@ -21,7 +21,8 @@
     "paths": {
       "@/*": ["./*"],
       "@agentops/ui": ["./packages/ui/src"],
-      "@agentops/shared": ["./packages/shared/src"]
+      "@agentops/shared": ["./packages/shared/src"],
+      "@agentops/telemetry": ["./packages/telemetry/src"]
     }
   },
   "include": [
