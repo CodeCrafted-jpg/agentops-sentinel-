@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [diagnosisLoading, setDiagnosisLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [streamStatus, setStreamStatus] = useState("Connecting to live stream...");
 
   const fetchDashboardData = async () => {
     setIsRefreshing(true);
@@ -70,11 +71,20 @@ export default function DashboardPage() {
   useEffect(() => {
     void fetchDashboardData();
 
-    const intervalId = window.setInterval(() => {
+    const eventSource = new EventSource("/api/stream");
+    eventSource.onopen = () => setStreamStatus("Live stream connected");
+    eventSource.addEventListener("connected", () => setStreamStatus("Live stream connected"));
+    eventSource.addEventListener("tick", () => {
+      setStreamStatus("Receiving live updates");
       void fetchDashboardData();
-    }, 10000);
+    });
+    eventSource.onerror = () => {
+      setStreamStatus("Live stream reconnecting...");
+    };
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -178,7 +188,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-medium text-ink-100">Live dashboard</p>
               <p className="text-xs text-ink-500">
-                {isRefreshing ? "Refreshing data…" : `Updated ${lastUpdated ? formatTime(lastUpdated) : "just now"}`}
+                {isRefreshing ? "Refreshing data…" : `${streamStatus} · Updated ${lastUpdated ? formatTime(lastUpdated) : "just now"}`}
               </p>
             </div>
             <Button variant="secondary" onClick={() => void fetchDashboardData()}>
@@ -301,8 +311,32 @@ export default function DashboardPage() {
                     <p className="mt-2 text-xs text-ink-500">
                       Duration {formatDuration(selectedTrace.durationMs)} · {selectedTrace.spanCount} spans
                     </p>
+                    <div className="mt-3 space-y-2 rounded border border-base-700 bg-base-950/80 p-2 text-xs text-ink-400">
+                      <p>Started: {formatTime(selectedTrace.startTime)}</p>
+                      <p>Environment: {selectedTrace.environment}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(diagnosis?.relatedSpanIds ?? []).length > 0 ? (
+                          diagnosis?.relatedSpanIds.map((spanId) => <Badge key={spanId} tone="info">{spanId}</Badge>)
+                        ) : (
+                          <span>No related spans captured yet.</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : null}
+
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (selectedAlert?.traceId || selectedTrace?.traceId) {
+                        void loadDiagnosis(selectedAlert?.alertId ?? null, selectedAlert?.traceId ?? selectedTrace?.traceId ?? null);
+                      }
+                    }}
+                  >
+                    Re-run diagnosis
+                  </Button>
+                </div>
 
                 {diagnosisLoading ? (
                   <div className="rounded border border-base-600 bg-base-900/80 p-3 text-sm text-ink-400">

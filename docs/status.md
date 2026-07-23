@@ -1,38 +1,29 @@
 # Application Status & Next Steps
 
-This document provides a summary of the current status of **AgentOps Sentinel** and reviews the original implementation plan to outline the next immediate tasks.
+This document summarizes the current state of AgentOps Sentinel as of 2026-07-24.
 
-## Current Application Status
+## Current Status
 
-### 🛠️ Backend Architecture (Ported to Next.js API Routes)
-- Due to the absence of a Python environment, all backend logic was successfully ported from Python FastAPI to **Next.js API Routes**.
-- **Local File DB (`app/api/db.ts`)**: Persists Alerts and Diagnoses to `backend/data/sample_runs.json` to sustain state across dev server reloads.
-- **SigNoz Query Client (`packages/telemetry/src/signoz-client.ts`)**: Successfully interfaces with SigNoz query APIs, with automatic fallbacks to mock data when working offline.
-- **AI/Heuristic Diagnosis Agent (`packages/telemetry/src/diagnosis-agent.ts`)**: Analyzes trace spans to diagnose timeouts and errors. Includes fallback heuristic rules and full OpenAI integration.
-- **Webhook Ingestion (`app/api/webhooks/signoz/route.ts`)**: Accepts and validates inbound webhooks, registers Alerts, and triggers background trace diagnosis.
+The app is now operating as a live observability dashboard with a working end-to-end flow for alerts, traces, and AI-assisted diagnosis.
 
-### 📡 Telemetry & OpenTelemetry SDK
-- **Node SDK Configuration (`packages/telemetry/src/otel.ts`)**: Boots up OpenTelemetry with OTLP/HTTP Trace Exporter pointing to the local/cloud collector endpoint.
-- **Span Helpers (`packages/telemetry/src/span-helpers.ts`)**: Provides structured wrappers (`traceAgentRun`, `traceStep`) and tracers (`recordLLMUsage`, `recordRetrievalUsage`, `recordToolUsage`) to shape telemetry.
-- **Simulation Script (`scripts/simulate-agent.ts` + `scripts/run-simulation.js`)**: Traces a mock agent workflow (retrieval -> planner -> discount tool -> response) to verify OTel dispatch.
+- The dashboard in [app/dashboard/page.tsx](app/dashboard/page.tsx) now fetches data from the live API routes for alerts and traces instead of relying on static mock data.
+- Clicking an alert or trace triggers a diagnosis request to [app/api/diagnostics/route.ts](app/api/diagnostics/route.ts), and the UI renders the root cause plus remediation guidance.
+- The dashboard polls the backend every 10 seconds so new simulation-generated runs appear automatically without a manual refresh.
+- Alert ingestion, local persistence through [app/api/db.ts](app/api/db.ts), and telemetry fallback logic are all wired up and functioning.
 
-### 🖥️ Frontend Shell
-- **Landing Page (`app/page.tsx`)**: Polished landing/marketing view with a product hero and overview.
-- **Dashboard Layout (`app/dashboard/page.tsx`)**: Premium dark-themed layout containing mockup metric cards, sparklines, and tables populated by `mock-data.ts`.
+## Current Phase
 
----
+The project is currently in Phase 3: Dashboard Experience.
 
-## Review of Original Implementation Plan & Next Steps
+This phase is now mostly implemented: the core live dashboard experience, alert selection flow, and diagnosis panel are all in place. The remaining work is focused on refinement and real-time polish.
 
-Based on the [Original Implementation Plan](file:///c:/Users/user/Desktop/agentops-sentinel/docs/agentops-sentinel-implementation-plan.md), the project is transitioning to **Phase 3: Dashboard Experience**.
+## Next Step
 
-### 📋 Recommended Next Steps
+The realtime streaming layer is now implemented with an SSE endpoint and a live dashboard subscription, so alerts and traces refresh as new events arrive without relying on polling.
 
-1. **Replace Mock Data with Dynamic API Queries**
-   - Refactor `app/dashboard/page.tsx` into a client component (or server component with search params / revalidation) that fetches from `/api/alerts` and `/api/traces` instead of referencing the static `mock-data.ts`.
+The next follow-up work is focused on product polish and reliability:
 
-2. **Add Interactive Run & Diagnosis Panel**
-   - Implement details panels so that clicking an alert or trace triggers a request to `/api/diagnostics` (which queries or creates the AI-generated diagnosis on-the-fly) and displays the remediation guide clearly.
+1. Add a dedicated trace detail view with deeper span drill-downs and timeline exploration.
+2. Improve the diagnosis experience with richer context, remediation steps, and better visual formatting.
+3. Add automated tests and production hardening for the streaming and diagnosis flows.
 
-3. **Incorporate Real-time Polling / SSE**
-   - Add a refresh timer or React state effect to poll `/api/alerts` so that runs executed by the simulation script automatically populate the UI dashboard without requiring manual page refreshes.
