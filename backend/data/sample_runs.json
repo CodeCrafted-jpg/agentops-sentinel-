@@ -1,0 +1,100 @@
+{
+  "traces": [
+    {
+      "traceId": "trc_4821",
+      "agentName": "checkout-agent",
+      "environment": "production",
+      "startTime": "2026-07-23T09:11:40Z",
+      "durationMs": 6420,
+      "status": "error",
+      "spanCount": 3,
+      "tokenCount": 1820,
+      "costUsd": 0.041,
+      "spans": [
+        {
+          "spanId": "spn_001",
+          "traceId": "trc_4821",
+          "parentSpanId": null,
+          "name": "agent.run",
+          "kind": "agent",
+          "status": "error",
+          "startTime": "2026-07-23T09:11:40Z",
+          "durationMs": 6420,
+          "attributes": { "agent.name": "checkout-agent" }
+        },
+        {
+          "spanId": "spn_002",
+          "traceId": "trc_4821",
+          "parentSpanId": "spn_001",
+          "name": "llm.plan_next_step",
+          "kind": "llm",
+          "status": "ok",
+          "startTime": "2026-07-23T09:11:40Z",
+          "durationMs": 640,
+          "attributes": { "model": "claude-sonnet-5", "tokens": 512 }
+        },
+        {
+          "spanId": "spn_003",
+          "traceId": "trc_4821",
+          "parentSpanId": "spn_001",
+          "name": "retrieval.fetch_inventory",
+          "kind": "retrieval",
+          "status": "timeout",
+          "startTime": "2026-07-23T09:11:41Z",
+          "durationMs": 4200,
+          "attributes": { "source": "inventory-service" },
+          "errorMessage": "upstream request exceeded 4s timeout"
+        }
+      ]
+    },
+    {
+      "traceId": "trc_4790",
+      "agentName": "summarizer-agent",
+      "environment": "production",
+      "startTime": "2026-07-23T08:40:55Z",
+      "durationMs": 2310,
+      "status": "ok",
+      "spanCount": 2,
+      "tokenCount": 940,
+      "costUsd": 0.018,
+      "spans": [
+        {
+          "spanId": "spn_010",
+          "traceId": "trc_4790",
+          "parentSpanId": null,
+          "name": "agent.run",
+          "kind": "agent",
+          "status": "ok",
+          "startTime": "2026-07-23T08:40:55Z",
+          "durationMs": 2310,
+          "attributes": { "agent.name": "summarizer-agent" }
+        },
+        {
+          "spanId": "spn_011",
+          "traceId": "trc_4790",
+          "parentSpanId": "spn_010",
+          "name": "llm.summarize",
+          "kind": "llm",
+          "status": "ok",
+          "startTime": "2026-07-23T08:40:55Z",
+          "durationMs": 2200,
+          "attributes": { "model": "claude-sonnet-5", "tokens": 940 }
+        }
+      ]
+    }
+  ],
+  "alerts": [
+    {
+      "alertId": "alt_01",
+      "title": "Retrieval span timeout rate above threshold",
+      "severity": "critical",
+      "status": "open",
+      "agentName": "checkout-agent",
+      "ruleName": "span.timeout.rate",
+      "traceId": "trc_4821",
+      "createdAt": "2026-07-23T09:12:00Z",
+      "updatedAt": "2026-07-23T09:12:00Z",
+      "summary": "12% of retrieval spans exceeded 3s over the last 15 minutes."
+    }
+  ]
+}
