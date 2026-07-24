@@ -90,6 +90,8 @@ export interface Diagnosis {
   confidence: number; // 0..1
   suggestedFix: string;
   relatedSpanIds: string[];
+  impact: string;
+  nextSteps: string[];
 }
 
 /** Raw webhook payload shape sent by SigNoz alerting. */

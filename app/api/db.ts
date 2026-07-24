@@ -1,65 +1,101 @@
-import fs from "fs";
-import path from "path";
-import type { Alert, Diagnosis, Trace } from "@agentops/shared";
+import { createClient } from "@supabase/supabase-js";
+import type { Alert, Diagnosis } from "@agentops/shared";
 
-const DB_PATH = path.join(process.cwd(), "backend", "data", "sample_runs.json");
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-interface Schema {
-  traces: Trace[];
-  alerts: Alert[];
-  diagnoses?: Diagnosis[];
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Missing Supabase configuration in environment variables.");
 }
 
-function readDb(): Schema {
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      const data = fs.readFileSync(DB_PATH, "utf-8");
-      const parsed = JSON.parse(data);
-      return {
-        traces: parsed.traces || [],
-        alerts: parsed.alerts || [],
-        diagnoses: parsed.diagnoses || [],
-      };
-    }
-  } catch (error) {
-    console.error("Error reading db file:", error);
-  }
-  return { traces: [], alerts: [], diagnoses: [] };
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false },
+});
+
+function mapAlert(row: any): Alert {
+  return {
+    alertId: row.alert_id,
+    title: row.title,
+    severity: row.severity,
+    status: row.status,
+    agentName: row.agent_name,
+    ruleName: row.rule_name,
+    traceId: row.trace_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    summary: row.summary,
+  };
 }
 
-function writeDb(data: Schema) {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Error writing to db file:", error);
-  }
+function mapDiagnosis(row: any): Diagnosis {
+  return {
+    diagnosisId: row.diagnosis_id,
+    traceId: row.trace_id,
+    alertId: row.alert_id,
+    createdAt: row.created_at,
+    rootCause: row.root_cause,
+    confidence: Number(row.confidence),
+    suggestedFix: row.suggested_fix,
+    relatedSpanIds: row.related_span_ids || [],
+    impact: row.impact,
+    nextSteps: row.next_steps || [],
+  };
 }
 
 export const db = {
-  getTraces: (): Trace[] => readDb().traces,
-  getAlerts: (): Alert[] => readDb().alerts,
-  getDiagnoses: (): Diagnosis[] => readDb().diagnoses || [],
-
-  addAlert: (alert: Alert) => {
-    const current = readDb();
-    current.alerts.unshift(alert);
-    writeDb(current);
+  getAlerts: async (): Promise<Alert[]> => {
+    const { data, error } = await supabase.from("alerts").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapAlert);
   },
 
-  addDiagnosis: (diagnosis: Diagnosis) => {
-    const current = readDb();
-    if (!current.diagnoses) current.diagnoses = [];
-    current.diagnoses.unshift(diagnosis);
-    writeDb(current);
+  getDiagnoses: async (): Promise<Diagnosis[]> => {
+    const { data, error } = await supabase.from("diagnoses").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapDiagnosis);
   },
-  
-  updateAlertStatus: (alertId: string, status: Alert["status"]) => {
-    const current = readDb();
-    const alert = current.alerts.find((a) => a.alertId === alertId);
-    if (alert) {
-      alert.status = status;
-      alert.updatedAt = new Date().toISOString();
-      writeDb(current);
-    }
-  }
+
+  addAlert: async (alert: Alert) => {
+    const { error } = await supabase.from("alerts").insert([
+      {
+        alert_id: alert.alertId,
+        title: alert.title,
+        severity: alert.severity,
+        status: alert.status,
+        agent_name: alert.agentName,
+        rule_name: alert.ruleName,
+        trace_id: alert.traceId,
+        summary: alert.summary,
+        created_at: alert.createdAt,
+        updated_at: alert.updatedAt,
+      },
+    ]);
+    if (error) throw error;
+  },
+
+  addDiagnosis: async (diagnosis: Diagnosis) => {
+    const { error } = await supabase.from("diagnoses").insert([
+      {
+        diagnosis_id: diagnosis.diagnosisId,
+        trace_id: diagnosis.traceId,
+        alert_id: diagnosis.alertId,
+        root_cause: diagnosis.rootCause,
+        confidence: diagnosis.confidence,
+        suggested_fix: diagnosis.suggestedFix,
+        related_span_ids: diagnosis.relatedSpanIds,
+        impact: diagnosis.impact,
+        next_steps: diagnosis.nextSteps,
+        created_at: diagnosis.createdAt,
+      },
+    ]);
+    if (error) throw error;
+  },
+
+  updateAlertStatus: async (alertId: string, status: Alert["status"]) => {
+    const { error } = await supabase
+      .from("alerts")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("alert_id", alertId);
+    if (error) throw error;
+  },
 };

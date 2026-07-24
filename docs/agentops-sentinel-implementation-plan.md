@@ -13,6 +13,18 @@ This plan is the blueprint for building the full hackathon-ready web app in this
 
 ---
 
+## Current Implementation Status (2026-07-24)
+
+As of 2026-07-24 the workspace contains a working Next.js dashboard that is running locally and wired to several API routes used by the UI. Key items already in place:
+
+- The dashboard at [app/dashboard/page.tsx](app/dashboard/page.tsx) fetches live data from API routes and supports alert/trace selection and diagnosis rendering.
+- A streaming SSE route exists at [app/api/stream/route.ts](app/api/stream/route.ts) to push live updates to the UI.
+- The diagnosis API route at [app/api/diagnostics/route.ts](app/api/diagnostics/route.ts) calls into the `SignozClient` and `DiagnosisAgent` from the `telemetry` package; it persists diagnoses via the local `db` layer.
+- A Python FastAPI service skeleton is present at [backend/app/main.py](backend/app/main.py) and already includes routers for `health`, `alerts`, and `diagnostics`.
+
+The app is therefore functionally end-to-end in the UI (alerts → trace selection → POST /api/diagnostics → render), but the backend persistence and production integration (Supabase, Clerk auth) are not yet wired.
+
+
 ## 2. What the Final Product Should Do
 
 ### Core experience
@@ -593,3 +605,32 @@ The biggest mistake to avoid is trying to build the full autonomous debugging sy
 - display it beautifully.
 
 That gives you a credible hackathon submission with a polished story and strong technical depth.
+
+---
+
+## FastAPI (Python) backend — when to implement and next steps
+
+Status: skeleton present in [backend/app/main.py](backend/app/main.py) (routers wired for health, alerts, diagnostics) but not yet production-ready: it currently uses stubbed services and local persistence.
+
+When to implement: implement the full FastAPI backend immediately after you have the authentication and persistence foundations in place (Clerk + Supabase). Recommended sequencing:
+
+1. Week 0 (this sprint): Add Clerk to the Next.js frontend and provision a Supabase project + DB schema (users, orgs, alerts, diagnoses, runs).
+2. Week 1: Wire the FastAPI backend to Supabase (via `supabase-py`) and add environment-driven configuration for DB and Signoz endpoints.
+3. Week 1 (parallel): Add auth enforcement — verify Clerk session/JWT on protected endpoints (alerts/diagnostics) and enforce per-org RBAC.
+4. Week 2: Migrate any local persistence (app/api/db.ts) to Supabase-backed endpoints, add seed scripts, and run integration tests.
+
+Concrete backend tasks:
+
+- Add `supabase` client to `backend/requirements.txt` or `requirements.txt` and configure `SUPABASE_URL` and `SUPABASE_KEY`.
+- Replace local JSON/DB reads with Supabase queries in `backend/app/api/*` handlers.
+- Add middleware to validate Clerk JWTs on protected routes (use Clerk public keys or Clerk server SDK).
+- Add a small migration/seed script under `backend/` to create tables and insert demo runs and alerts.
+- Run the backend locally with:
+
+```bash
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
+
+If you prefer to postpone the Python backend, the same endpoints can be implemented in Next.js API routes for an MVP — however a separate FastAPI service is recommended for production because it separates concerns and simplifies scaling the diagnosis agent.
+

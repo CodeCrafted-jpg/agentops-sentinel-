@@ -36,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     summary: payload.annotations["description"] || payload.annotations["summary"] || "Anomaly detected by rule.",
   };
 
-  db.addAlert(alert);
+  await db.addAlert(alert);
   console.info("[webhooks/signoz] Alert saved:", alert.alertId, alert.title);
 
   if (alert.traceId) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         if (trace) {
           console.info(`[webhooks/signoz] Running Diagnosis Agent for trace: ${alert.traceId}`);
           const diagnosis = await diagnosisAgent.diagnose(trace, alert.alertId);
-          db.addDiagnosis(diagnosis);
+          await db.addDiagnosis(diagnosis);
           console.info(`[webhooks/signoz] Diagnosis saved for alert ${alert.alertId}`);
         } else {
           console.warn(`[webhooks/signoz] No trace found for traceId: ${alert.traceId}`);

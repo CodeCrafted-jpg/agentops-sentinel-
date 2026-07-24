@@ -20,13 +20,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
 
   const traceId = body.traceId;
 
-  // 1. Check if we already have it persisted
-  const existing = db.getDiagnoses().find((d) => d.traceId === traceId);
+  const existingDiagnoses = await db.getDiagnoses();
+  const existing = existingDiagnoses.find((d) => d.traceId === traceId);
   if (existing) {
     return NextResponse.json({ data: existing, error: null });
   }
 
-  // 2. Otherwise generate it on the fly
   try {
     const trace = await signozClient.getTrace(traceId);
     if (!trace) {
@@ -37,10 +36,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     }
 
     const diagnosis = await diagnosisAgent.diagnose(trace, body.alertId || null);
-    db.addDiagnosis(diagnosis);
+    await db.addDiagnosis(diagnosis);
 
     return NextResponse.json({ data: diagnosis, error: null });
   } catch (err: any) {
+    console.error("Failed to generate diagnosis:", err);
     return NextResponse.json(
       { data: null, error: `failed to generate diagnosis: ${err.message || err}` },
       { status: 500 }

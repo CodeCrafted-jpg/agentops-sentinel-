@@ -111,6 +111,9 @@ class Diagnosis(BaseModel):
     confidence: float
     suggested_fix: str = Field(alias="suggestedFix")
     related_span_ids: list[str] = Field(default_factory=list, alias="relatedSpanIds")
+    impact: str = Field(default="Unknown impact")
+    next_steps: list[str] = Field(default_factory=list, alias="nextSteps")
 
     class Config:
         populate_by_name = True
+

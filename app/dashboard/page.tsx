@@ -19,7 +19,7 @@ import {
   TableRow,
   toneFromStatus,
 } from "@agentops/ui";
-import type { Alert, ApiResponse, DashboardOverview, Diagnosis, TraceSummary } from "@agentops/shared";
+import type { Alert, ApiResponse, DashboardOverview, Diagnosis, Span, Trace, TraceSummary } from "@agentops/shared";
 import { Sidebar } from "./_components/Sidebar";
 import { Topbar } from "./_components/Topbar";
 
@@ -40,8 +40,11 @@ export default function DashboardPage() {
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [diagnosisLoading, setDiagnosisLoading] = useState(false);
+  const [traceDetails, setTraceDetails] = useState<Span[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [streamStatus, setStreamStatus] = useState("Connecting to live stream...");
+  const [traceFilter, setTraceFilter] = useState<"all" | "error" | "ok">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchDashboardData = async () => {
     setIsRefreshing(true);
@@ -107,6 +110,26 @@ export default function DashboardPage() {
     [traces, selectedTraceId]
   );
 
+  const loadTraceDetails = async (traceId: string | null) => {
+    if (!traceId) {
+      setTraceDetails([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/traces?traceId=${encodeURIComponent(traceId)}`, { cache: "no-store" });
+      const payload = (await response.json()) as ApiResponse<Trace | null>;
+
+      if (payload.data && "spans" in payload.data) {
+        setTraceDetails(payload.data.spans ?? []);
+      } else {
+        setTraceDetails([]);
+      }
+    } catch {
+      setTraceDetails([]);
+    }
+  };
+
   const loadDiagnosis = async (alertId: string | null, traceId: string | null) => {
     if (!traceId) {
       setDiagnosis(null);
@@ -130,6 +153,7 @@ export default function DashboardPage() {
       }
 
       setDiagnosis(payload.data);
+      void loadTraceDetails(traceId);
     } catch (error) {
       setDiagnosis(null);
       setDiagnosisError(error instanceof Error ? error.message : "Unable to create a diagnosis.");
@@ -143,9 +167,11 @@ export default function DashboardPage() {
     if (!traceId) {
       setDiagnosis(null);
       setDiagnosisError(null);
+      setTraceDetails([]);
       return;
     }
 
+    void loadTraceDetails(traceId);
     void loadDiagnosis(selectedAlert?.alertId ?? null, traceId);
   }, [selectedAlert?.alertId, selectedAlert?.traceId, selectedTrace?.traceId]);
 
@@ -168,6 +194,14 @@ export default function DashboardPage() {
   }, [alerts, traces]);
 
   const latencyTrend = useMemo(() => traces.slice(0, 9).map((trace) => trace.durationMs), [traces]);
+  const visibleTraces = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return traces.filter((trace) => {
+      const matchesStatus = traceFilter === "all" ? true : trace.status === traceFilter;
+      const matchesQuery = !query || [trace.traceId, trace.agentName, trace.environment].some((value) => value.toLowerCase().includes(query));
+      return matchesStatus && matchesQuery;
+    });
+  }, [searchQuery, traceFilter, traces]);
   const breakdown = useMemo(
     () => [
       { label: "Open alerts", value: overview.openAlerts, tone: "alert" as const },
@@ -322,6 +356,25 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
+                    <div className="mt-3 rounded border border-base-700 bg-base-950/80 p-2">
+                      <p className="text-[11px] uppercase tracking-wide text-ink-500">Span timeline</p>
+                      <div className="mt-2 space-y-2 text-xs text-ink-300">
+                        {traceDetails.length > 0 ? (
+                          traceDetails.map((span) => (
+                            <div key={span.spanId} className="rounded border border-base-700 bg-base-900/80 p-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-ink-100">{span.name}</span>
+                                <Badge tone={span.status === "ok" ? "signal" : span.status === "timeout" ? "alert" : "critical"}>{span.status}</Badge>
+                              </div>
+                              <p className="mt-1 text-[11px] text-ink-500">{span.kind} · {formatDuration(span.durationMs)}</p>
+                              {span.errorMessage ? <p className="mt-1 text-[11px] text-alert">{span.errorMessage}</p> : null}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-ink-400">Detailed spans will appear once a full trace payload is available.</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : null}
 
@@ -347,10 +400,25 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-xs uppercase tracking-wide text-signal">Diagnosis</p>
                       <p className="mt-1 text-sm font-medium text-ink-100">{diagnosis.rootCause}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge tone="signal">Confidence {Math.round(diagnosis.confidence * 100)}%</Badge>
+                        <Badge tone={diagnosis.confidence >= 0.8 ? "critical" : "alert"}>Priority {diagnosis.confidence >= 0.8 ? "high" : "medium"}</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-ink-500">Impact</p>
+                      <p className="mt-1 text-sm text-ink-300">{diagnosis.impact}</p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-wide text-ink-500">Suggested remediation</p>
                       <p className="mt-1 text-sm text-ink-300">{diagnosis.suggestedFix}</p>
+                      {(diagnosis.nextSteps?.length ?? 0) > 0 ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-300">
+                          {diagnosis.nextSteps.map((step) => (
+                            <li key={step}>{step}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
                     <div className="flex items-center justify-between text-xs text-ink-500">
                       <span>Confidence {Math.round(diagnosis.confidence * 100)}%</span>
@@ -369,7 +437,26 @@ export default function DashboardPage() {
           <section>
             <Card>
               <CardHeader>
-                <CardTitle>Recent traces</CardTitle>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <CardTitle>Recent traces</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search traces"
+                      className="rounded border border-base-600 bg-base-900 px-2 py-1 text-sm text-ink-100 outline-none"
+                    />
+                    <select
+                      value={traceFilter}
+                      onChange={(event) => setTraceFilter(event.target.value as "all" | "error" | "ok")}
+                      className="rounded border border-base-600 bg-base-900 px-2 py-1 text-sm text-ink-100 outline-none"
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="ok">Healthy</option>
+                      <option value="error">Errors</option>
+                    </select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -384,7 +471,7 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {traces.map((trace) => {
+                    {visibleTraces.map((trace) => {
                       const isSelected = trace.traceId === selectedTrace?.traceId;
                       return (
                         <TableRow

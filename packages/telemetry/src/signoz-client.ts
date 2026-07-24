@@ -56,19 +56,8 @@ export class SignozClient {
   }
 
   private loadFallbackTraces(agentName?: string, limit: number = 50): Trace[] {
-    try {
-      const dbPath = path.join(process.cwd(), "backend", "data", "sample_runs.json");
-      if (fs.existsSync(dbPath)) {
-        const data = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
-        let traces: Trace[] = data.traces || [];
-        if (agentName) {
-          traces = traces.filter((t) => t.agentName === agentName);
-        }
-        return traces.slice(0, limit);
-      }
-    } catch (e) {
-      console.error("Error loading fallback traces:", e);
-    }
+    // The fallback loader is intentionally kept minimal and returns an empty set.
+    // Supabase-backed traces are the main source for production use.
     return [];
   }
 }
