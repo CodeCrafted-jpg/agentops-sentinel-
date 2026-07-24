@@ -1,67 +1,76 @@
 # Application Status & Next Steps
 
-This document summarizes the current state of AgentOps Sentinel as of 2026-07-24.
+This document summarizes the current state and completion progress of **AgentOps Sentinel** as of 2026-07-24.
 
-## Current Status
+---
 
-The Next.js dashboard is running locally and is protected by Clerk authentication. Data persistence is fully migrated to **Supabase database persistence** for alerts and diagnoses, and the FastAPI backend router endpoints are wired up to Supabase.
+## 📊 Project Completion Level: **~85% – 90%**
 
+| Component | Status | Description |
+| :--- | :---: | :--- |
+| **Frontend UI (Next.js 16)** | ✅ **100%** | Full dashboard UI with trace viewer, filter search, active alerts, SSE live updates, and AI diagnosis modals. |
+| **Authentication (Clerk)** | ✅ **100%** | Middleware protection, login/signup routes, and user profile topbar integration. |
+| **Next.js API Layer** | ✅ **100%** | Unified API routes (`/api/alerts`, `/api/traces`, `/api/diagnostics`, `/api/webhooks/signoz`, `/api/stream`). |
+| **FastAPI Backend (Python)** | ✅ **100%** | SigNoz API client, Cohere/LLM Diagnosis Agent, and Supabase client routers. |
+| **Database & Schema** | ✅ **95%** | Multi-tenant schema defined in [schema.sql](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/supabase/schema.sql) with JS & Python clients. |
+| **OpenTelemetry Telemetry** | ✅ **95%** | OTel tracer configured in [otel.ts](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/packages/telemetry/src/otel.ts) and simulation scripts. |
+| **Live Telemetry & SigNoz Alert Pipeline** | ⏳ **Pending Setup** | Final end-to-end integration: executing simulation scripts, configuring SigNoz Cloud alerts, and setting webhooks. |
 
-## What Has Been Implemented So Far
+---
 
-The project now includes the following:
+## 🛠️ What Has Been Implemented
 
-- **Authentication Enforcement**:
-  - Installed and configured `@clerk/nextjs` SDK.
-  - Wrapped root layout in [layout.tsx](file:///c:/Users/user/Desktop/agentops-sentinel/app/layout.tsx) with `<ClerkProvider>`.
-  - Implemented Clerk middleware in [middleware.ts](file:///c:/Users/user/Desktop/agentops-sentinel/app/middleware.ts) protecting all dashboard and API routes (excluding public endpoints and the SigNoz webhook route).
-  - Wired [Topbar.tsx](file:///c:/Users/user/Desktop/agentops-sentinel/app/dashboard/_components/Topbar.tsx) client-side hooks to display Clerk `<UserButton>` and `<SignInButton>`.
-  - Set up active `/sign-in` and `/sign-up` routing pages with Clerk components.
+1. **Authentication & Authorization**:
+   - Integrated `@clerk/nextjs` SDK and configured Clerk middleware in [middleware.ts](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/app/middleware.ts).
+   - Styled user button and sign-in/up routes.
 
-- **Supabase Integration & Persistence**:
-  - Database schema defined in [supabase/schema.sql](file:///c:/Users/user/Desktop/agentops-sentinel/supabase/schema.sql) supporting multi-tenant structure (organizations, users, alerts, diagnoses).
-  - Database operations migrated in [app/api/db.ts](file:///c:/Users/user/Desktop/agentops-sentinel/app/api/db.ts) to query and insert into Supabase via `supabaseClient`.
-  - Refactored API routes (`/api/alerts`, `/api/diagnostics`) to support async database queries.
+2. **Database & Data Persistence**:
+   - Defined multi-tenant relational schema in [schema.sql](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/supabase/schema.sql).
+   - Wired database handlers in [db.ts](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/app/api/db.ts) and [supabase_client.py](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/backend/services/supabase_client.py).
 
-- **FastAPI Backend wiring**:
-  - Configured `supabase` and `PyJWT` in `backend/requirements.txt`.
-  - Created central [supabase_client.py](file:///c:/Users/user/Desktop/agentops-sentinel/backend/services/supabase_client.py).
-  - Replaced local stubbed list in [alerts.py](file:///c:/Users/user/Desktop/agentops-sentinel/backend/app/api/alerts.py) and diagnostics stub in [diagnostics.py](file:///c:/Users/user/Desktop/agentops-sentinel/backend/app/api/diagnostics.py) with actual Supabase client queries.
-  - Implemented full fallback diagnostics logic in [diagnosis_agent.py](file:///c:/Users/user/Desktop/agentops-sentinel/backend/services/diagnosis_agent.py) to mirror typescript diagnosis logic.
+3. **FastAPI & Next.js API Services**:
+   - Python endpoints in `backend/app/api/` supporting FastAPI execution.
+   - Next.js Webhook handler (`/api/webhooks/signoz`) that processes SigNoz alerts and triggers AI diagnosis automatically.
 
-- **Dashboard UI Enhancements**:
-  - Added real-time trace search and status-based filtering (All, Healthy, Errors) to the traces list.
-  - Implemented detailed span timeline view for selected traces, fetched asynchronously via `/api/traces?traceId=...`.
-  - Upgraded the diagnosis display to render confidence levels, severity priority, impact details, and next steps.
+4. **Dashboard UX & Visualizations**:
+   - Real-time trace search, status filtering (`All`, `Healthy`, `Errors`), and span timeline views.
+   - Live stream updates via Server-Sent Events (`/api/stream`).
+   - Detailed diagnosis drawer rendering root causes, impact assessments, severity badges, and code remediation recommendations.
 
-- **Diagnosis Agent Upgrades**:
-  - Migrated the LLM backend from OpenAI to Cohere (`COHERE_API_KEY`) using `llama-3b` or custom models.
-  - Refactored LLM prompting and schema validation to extract detailed remediation steps, impact assessment, and confidence levels.
+5. **AI Diagnosis Agent**:
+   - LLM-powered engine using Cohere / OpenAI (with deterministic heuristic fallback) in [diagnosis_agent.py](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/backend/services/diagnosis_agent.py).
 
-## Current Phase
+---
 
-We are in **Phase 4 (Demo Polish & Telemetry Implementation)**. The foundational architecture (frontend, backend, persistence, auth) is complete. The local databases have been seeded with mock data so the dashboard is functional.
+## 🎯 Current Phase
 
-## Next Steps
+We are in **Phase 4 (Demo Polish & Live Telemetry Implementation)**. The core application, UI, auth, API layer, and backend logic are complete. Local mock data is configured to allow standalone testing.
 
-Now that both the frontend and backend are running and showing seeded data, the final integration is pushing real traces to your SigNoz Cloud and setting up the alert pipeline. 
+---
 
-To see traces and alerts in your SigNoz Cloud:
+## 🚀 Recommended Next Steps
 
-1. **Send Traces to SigNoz**: 
-   Run the agent simulation script. This script uses OpenTelemetry to simulate an AI agent and emits spans directly to your `NEXT_PUBLIC_SIGNOZ_API_URL`.
+1. **Setup `.env.local`**:
+   Populate environment keys for Clerk, Supabase, SigNoz, and Cohere/OpenAI.
+
+2. **Migrate & Seed Supabase**:
+   Run [schema.sql](file:///d:/webDeveloper/Project_SizNoz/agentops-sentinel-/supabase/schema.sql) in your Supabase SQL editor and execute `python scripts/seed-demo-data.py`.
+
+3. **Run Dev Servers**:
    ```bash
-   npx tsx scripts/simulate-agent.ts
+   # Terminal 1: Next.js Frontend
+   npm run dev
+
+   # Terminal 2: FastAPI Backend (Optional)
+   cd backend
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
-   *Note: Make sure your `.env.local` contains the correct `SIGNOZ_API_KEY` and `NEXT_PUBLIC_SIGNOZ_API_URL`.*
 
-2. **Configure the Alert in SigNoz**:
-   - Go to your SigNoz Cloud dashboard.
-   - Navigate to **Alerts** > **New Alert** (or Alert Rules).
-   - Create a rule (e.g., "LLM Latency Spike") that triggers if `durationMs > 5000` (or similar metric).
-   - Set the Alert Channel (Webhook) to point to your Next.js webhook endpoint: `https://your-domain.com/api/webhooks/signoz` (or a local tunnel URL like ngrok if you are testing locally).
-
-3. **Verify the End-to-End Flow**:
-   - Run the simulation script again with the `--fail` flag: `npx ts-node scripts/simulate-agent.ts --fail`.
-   - Watch the alert trigger in SigNoz, which will send a webhook to your app.
-   - Your Next.js app will receive the webhook, the FastAPI backend will run the Diagnosis Agent, save it to Supabase, and your dashboard will reflect the new AI-generated diagnosis!
+4. **Connect SigNoz Webhook & Test End-to-End**:
+   - Send test telemetry spans:
+     ```bash
+     npx tsx scripts/simulate-agent.ts --fail
+     ```
+   - In SigNoz Cloud, create an Alert Rule targeting failure/latency conditions.
+   - Point the Webhook URL to `http://localhost:3000/api/webhooks/signoz` (or ngrok tunnel URL).
+   - Confirm that incoming webhooks trigger the AI Diagnosis Agent and dynamically display root causes on your dashboard.
