@@ -3,8 +3,6 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { Resource } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
-const SIGNOZ_OTLP_ENDPOINT = process.env.SIGNOZ_OTLP_ENDPOINT || "http://localhost:4318/v1/traces";
-
 let sdk: NodeSDK | null = null;
 
 export function initTelemetry(serviceName: string = "agentops-sentinel") {
@@ -12,8 +10,12 @@ export function initTelemetry(serviceName: string = "agentops-sentinel") {
     return;
   }
 
+  const SIGNOZ_OTLP_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || process.env.SIGNOZ_OTLP_ENDPOINT || (process.env.NEXT_PUBLIC_SIGNOZ_API_URL ? `${process.env.NEXT_PUBLIC_SIGNOZ_API_URL}/v1/traces` : "http://localhost:4318/v1/traces");
+  const SIGNOZ_API_KEY = process.env.SIGNOZ_INGESTION_KEY || process.env.SIGNOZ_API_KEY;
+
   const traceExporter = new OTLPTraceExporter({
     url: SIGNOZ_OTLP_ENDPOINT,
+    headers: SIGNOZ_API_KEY ? { "signoz-access-token": SIGNOZ_API_KEY } : {},
   });
 
   sdk = new NodeSDK({

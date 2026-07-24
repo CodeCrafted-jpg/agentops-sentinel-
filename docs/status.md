@@ -40,18 +40,28 @@ The project now includes the following:
 
 ## Current Phase
 
-We are in **Week 1 / Phase 4** transition, focusing on telemetry loop verification, environment-driven configuration for SigNoz, and dashboard demo script polishing.
+We are in **Phase 4 (Demo Polish & Telemetry Implementation)**. The foundational architecture (frontend, backend, persistence, auth) is complete. The local databases have been seeded with mock data so the dashboard is functional.
 
 ## Next Steps
 
-Based on the [agentops-sentinel-implementation-plan.md](file:///c:/Users/user/Desktop/agentops-sentinel/docs/agentops-sentinel-implementation-plan.md):
+Now that both the frontend and backend are running and showing seeded data, the final integration is pushing real traces to your SigNoz Cloud and setting up the alert pipeline. 
 
-1. **Telemetry & Real SigNoz Connection**:
-   - Establish connection to a live SigNoz endpoint (local or cloud).
-   - Verify webhook ingestion flows under `/api/webhooks/signoz` with real payload data.
-2. **Demo Script & Verification**:
-   - Seed mockup runs using Supabase dashboards or scripts.
-   - Verify the end-to-end user-experience path (Webhook alert receipt -> Auto-generated diagnosis -> Frontend refresh via SSE stream).
+To see traces and alerts in your SigNoz Cloud:
 
+1. **Send Traces to SigNoz**: 
+   Run the agent simulation script. This script uses OpenTelemetry to simulate an AI agent and emits spans directly to your `NEXT_PUBLIC_SIGNOZ_API_URL`.
+   ```bash
+   npx tsx scripts/simulate-agent.ts
+   ```
+   *Note: Make sure your `.env.local` contains the correct `SIGNOZ_API_KEY` and `NEXT_PUBLIC_SIGNOZ_API_URL`.*
 
+2. **Configure the Alert in SigNoz**:
+   - Go to your SigNoz Cloud dashboard.
+   - Navigate to **Alerts** > **New Alert** (or Alert Rules).
+   - Create a rule (e.g., "LLM Latency Spike") that triggers if `durationMs > 5000` (or similar metric).
+   - Set the Alert Channel (Webhook) to point to your Next.js webhook endpoint: `https://your-domain.com/api/webhooks/signoz` (or a local tunnel URL like ngrok if you are testing locally).
 
+3. **Verify the End-to-End Flow**:
+   - Run the simulation script again with the `--fail` flag: `npx ts-node scripts/simulate-agent.ts --fail`.
+   - Watch the alert trigger in SigNoz, which will send a webhook to your app.
+   - Your Next.js app will receive the webhook, the FastAPI backend will run the Diagnosis Agent, save it to Supabase, and your dashboard will reflect the new AI-generated diagnosis!

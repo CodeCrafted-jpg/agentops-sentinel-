@@ -1,3 +1,7 @@
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config({ path: ".env" }); // Fallback if local doesn't exist
+
 import {
   initTelemetry,
   shutdownTelemetry,
