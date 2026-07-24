@@ -1,2 +1,23 @@
-# casting.yaml
-# Add your Foundry configuration here as required by the hackathon submission guidelines.
+name: agentops-sentinel
+description: "AgentOps Sentinel: AI Agent Telemetry and Observability Platform"
+
+# This is a standard generic deployment configuration.
+# If your hackathon provided a specific schema, replace this with their template!
+services:
+  frontend:
+    type: web
+    env: node
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
+    port: 3000
+    environment:
+      - NODE_ENV=production
+      # - NEXT_PUBLIC_SIGNOZ_API_URL=${NEXT_PUBLIC_SIGNOZ_API_URL}
+
+  # Uncomment if the backend is also required to run in the deployment container
+  # backend:
+  #   type: worker
+  #   env: python
+  #   buildCommand: "cd backend && pip install -r requirements.txt"
+  #   startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  #   port: 8000
