@@ -15,3 +15,8 @@ Invoke-RestMethod `
  frontend run=npm run dev
  backend run=cd backend
 >> uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload  
+
+
+fail agent flag with signoz=node scripts/run-real-agent.js --fail
+fail agent local=node scripts/test-webhook.js
+
