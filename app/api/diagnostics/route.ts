@@ -47,3 +47,4 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     );
   }
 }
+export async function GET(): Promise<NextResponse<ApiResponse<Diagnosis[]>>> { const existingDiagnoses = await db.getDiagnoses(); return NextResponse.json({ data: existingDiagnoses, error: null }); }
