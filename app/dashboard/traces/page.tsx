@@ -65,7 +65,7 @@ export default function TracesPage() {
                     <TableHeaderCell>Time</TableHeaderCell>
                     <TableHeaderCell>Status</TableHeaderCell>
                     <TableHeaderCell>Duration</TableHeaderCell>
-                    <TableHeaderCell>Cost</TableHeaderCell>
+                    <TableHeaderCell>Spans</TableHeaderCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -93,7 +93,7 @@ export default function TracesPage() {
                           <Badge tone={toneFromStatus(trace.status)}>{trace.status}</Badge>
                         </TableCell>
                         <TableCell>{formatDuration(trace.durationMs)}</TableCell>
-                        <TableCell>{trace.costUsd ? `$${trace.costUsd.toFixed(4)}` : "—"}</TableCell>
+                        <TableCell>{trace.spanCount}</TableCell>
                       </TableRow>
                     ))
                   )}
