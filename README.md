@@ -1,88 +1,122 @@
 # AgentOps Sentinel
 
-AgentOps Sentinel is a specialized observability platform that turns raw OpenTelemetry traces from your AI agents into automated, deterministic diagnostics.
+## Overview
+AgentOps Sentinel is an AI-powered observability platform for LLM and multi-agent applications. It uses OpenTelemetry and SigNoz to collect traces, metrics, and logs, then leverages AI to analyze failures, identify root causes, and suggest fixes.
 
-This project uses Next.js for the frontend, FastAPI for the backend, Clerk for authentication, Supabase for persistence, and SigNoz for telemetry ingestion.
+## Problem Statement
+Modern AI systems are difficult to debug because failures occur across multiple LLM calls, vector databases, tool invocations, and agent workflows. Traditional logging is not enough to understand these complex execution paths.
 
-## Setup Instructions
+## Solution
+AgentOps Sentinel provides: 
+- End-to-end OpenTelemetry instrumentation 
+- Centralized observability with SigNoz 
+- AI-assisted root cause analysis 
+- Real-time dashboards 
+- Alerting for failures and latency spikes 
+- Incident timeline and execution replay
 
-### 1. Prerequisites
-- Node.js (v18+)
-- Python (3.11+)
-- A Supabase Project
-- A Clerk Application
-- A SigNoz instance (Cloud or Local)
+## Features
+- Distributed tracing for AI workflows
+- Custom metrics (latency, token usage, cost)
+- Structured logging
+- SigNoz dashboards
+- Alert rules
+- AI-generated incident diagnosis
+- Execution timeline visualization
+- Modern Next.js dashboard
 
-### 2. Environment Variables
-Ensure `.env.local` is present in the root directory with the following variables:
+## Tech Stack
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: FastAPI (Python), Next.js Route Handlers
+- **Database**: PostgreSQL (Supabase)
+- **Authentication**: Clerk
+- **Observability**: OpenTelemetry, SigNoz, OTLP Exporter
+- **AI**: Gemini / OpenAI
 
+## Architecture
+`User → Next.js Application → AI Workflow → OpenTelemetry → SigNoz → AI Diagnosis Engine → Dashboard`
+
+## Project Structure
+```text
+app/               # Next.js frontend
+backend/           # FastAPI backend
+components/        # React components
+supabase/          # Database schema
+scripts/           # Utility scripts
+instrumentation.ts # OpenTelemetry setup
+public/            # Static assets
+```
+
+## Installation
+1. Clone the repository.
+2. Install dependencies for both frontend and backend.
+3. Configure environment variables.
+4. Set up Supabase Database using `supabase/schema.sql`.
+5. Start SigNoz using Foundry (`casting.yaml`).
+6. Run the development servers.
+
+## Environment Variables
+Ensure `.env.local` is present in the root directory:
 ```env
-# General
 NEXT_PUBLIC_APP_NAME=AgentOps Sentinel
-
-# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-
-# Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret-key
-
-# SigNoz
 NEXT_PUBLIC_SIGNOZ_API_URL=your-signoz-api-url
 SIGNOZ_API_KEY=your-signoz-api-key
-
-# Backend
 NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 ```
 
-### 3. Database Setup (Supabase)
-Navigate to the SQL Editor in your Supabase dashboard and run the schema file to create the necessary tables:
-1. Open `supabase/schema.sql` and copy its contents.
-2. Paste it into the Supabase SQL Editor and hit run.
+## SigNoz Integration
+The application is instrumented using OpenTelemetry. Every AI workflow generates: 
+- Traces 
+- Metrics 
+- Logs
 
-### 4. Seeding Demo Data
-To populate your dashboard with initial sample data (so it doesn't show all 0s):
-```bash
-# Install backend dependencies
-pip install -r backend/requirements.txt
+Custom metrics include: 
+- LLM latency 
+- Token usage 
+- Token cost 
+- Tool execution time 
+- Retrieval latency 
+- Error rate 
+- Retry count
 
-# Run the seed script
-python scripts/seed-demo-data.py
-```
+SigNoz dashboards visualize application health, while alerts notify developers when thresholds are exceeded.
 
-### 5. Running the Application (Local Development)
+## Demo Flow
+1. User starts an AI workflow.
+2. OpenTelemetry creates traces.
+3. SigNoz collects telemetry.
+4. An alert is triggered on failure.
+5. The AI diagnosis engine analyzes the incident.
+6. The dashboard displays the root cause and suggested fix.
 
-You'll need two terminal windows to run both services simultaneously.
+## Future Improvements
+- Multi-agent support
+- GitHub PR generation
+- Cost forecasting
+- Prompt comparison
+- Failure simulation
 
-**Terminal 1: Frontend (Next.js)**
-```bash
-npm install
-npm run dev
-```
-*Runs on http://localhost:3000*
+## AI Assistance Declaration
+AI tools were utilized during the development of this project:
+- **ChatGPT** was used for brainstorming, architecture planning, and documentation.
+- **GitHub Copilot** was used for monitoring and implementation guidance.
 
-**Terminal 2: Backend (FastAPI)**
-```bash
-cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-*Runs on http://localhost:8000*
+All integration, testing, validation, and final implementation decisions were completed by the project author(s).
 
----
+## License
+Specify the license used for this project (e.g., MIT).
 
-## Demo Flow & Presentation Narrative
-
-This project is built to demonstrate automated agent diagnostics at a hackathon. Use the following narrative flow for your presentation:
-
-1. **Start Workflow:** Show an AI agent (e.g., a checkout or summarizer agent) executing a complex task.
-2. **Telemetry Sent:** The agent emits OpenTelemetry spans for LLM calls, tool usage, and retrieval steps.
-3. **SigNoz Receives Trace:** The trace arrives in SigNoz, where performance metrics are captured.
-4. **Alert Triggered:** A threshold is breached (e.g., LLM Latency Spike > 5s). SigNoz triggers an alert via webhook.
-5. **Webhook Received:** Our Next.js webhook endpoint catches the alert.
-6. **Diagnosis Generated:** The backend FastAPI service kicks off the `DiagnosisAgent`, which analyzes the specific trace causing the alert.
-7. **Stored in Supabase:** The agent's diagnosis (root cause and suggested fix) is saved to the cloud database.
-8. **Dashboard Refreshes:** The UI instantly reflects the new open alert and the auto-generated diagnosis.
-9. **Judge Opens Trace:** The hackathon judge clicks the trace on the Sentinel dashboard.
-10. **AI Explains & Suggested Fix:** Show the human-readable explanation of why the agent failed and the suggested fix, proving the value of the platform.
+## Acknowledgements
+- SigNoz
+- OpenTelemetry
+- WeMakeDevs
+- Next.js
+- React
+- FastAPI
+- Clerk
+- Supabase
