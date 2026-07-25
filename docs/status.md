@@ -40,28 +40,27 @@ The project now includes the following:
 
 ## Current Phase
 
-We are in **Phase 4 (Demo Polish & Telemetry Implementation)**. The foundational architecture (frontend, backend, persistence, auth) is complete. The local databases have been seeded with mock data so the dashboard is functional.
+We have completed **Phase 4 (Demo Polish & Telemetry Implementation)**. The foundational architecture (frontend, backend, persistence, auth) is complete. The telemetry pipeline—including OpenTelemetry simulation scripts and the SigNoz webhook receiver (`app/api/webhooks/signoz`)—is fully implemented. The dashboard is functional with mock data and ready to receive real E2E data.
 
 ## Next Steps
 
-Now that both the frontend and backend are running and showing seeded data, the final integration is pushing real traces to your SigNoz Cloud and setting up the alert pipeline. 
+Now that the codebase is functionally complete, the immediate next steps involve **End-to-End Validation** and **Integration with Real Agents**.
 
-To see traces and alerts in your SigNoz Cloud:
+### 1. End-to-End Validation (SigNoz Configuration)
 
-1. **Send Traces to SigNoz**: 
-   Run the agent simulation script. This script uses OpenTelemetry to simulate an AI agent and emits spans directly to your `NEXT_PUBLIC_SIGNOZ_API_URL`.
-   ```bash
-   npx tsx scripts/simulate-agent.ts
-   ```
-   *Note: Make sure your `.env.local` contains the correct `SIGNOZ_API_KEY` and `NEXT_PUBLIC_SIGNOZ_API_URL`.*
+To verify the complete pipeline works with the provided simulation scripts:
 
-2. **Configure the Alert in SigNoz**:
-   - Go to your SigNoz Cloud dashboard.
-   - Navigate to **Alerts** > **New Alert** (or Alert Rules).
-   - Create a rule (e.g., "LLM Latency Spike") that triggers if `durationMs > 5000` (or similar metric).
-   - Set the Alert Channel (Webhook) to point to your Next.js webhook endpoint: `https://your-domain.com/api/webhooks/signoz` (or a local tunnel URL like ngrok if you are testing locally).
+- **Configure SigNoz Alert Rule**: 
+  Set up an alert rule in your SigNoz Cloud instance (e.g., trigger when `durationMs > 5000` or on errors).
+- **Configure Webhook**:
+  Point the SigNoz Alert Channel to your Next.js webhook endpoint (use `ngrok` if testing locally, pointing to `/api/webhooks/signoz`).
+- **Trigger the Flow**:
+  Run `npx tsx scripts/simulate-agent.ts --fail` to send a failed trace to SigNoz, which will trigger the alert, hit the webhook, generate the AI diagnosis, and reflect in the Supabase DB and Next.js Dashboard.
 
-3. **Verify the End-to-End Flow**:
-   - Run the simulation script again with the `--fail` flag: `npx ts-node scripts/simulate-agent.ts --fail`.
-   - Watch the alert trigger in SigNoz, which will send a webhook to your app.
-   - Your Next.js app will receive the webhook, the FastAPI backend will run the Diagnosis Agent, save it to Supabase, and your dashboard will reflect the new AI-generated diagnosis!
+### 2. Integration with Real Agents
+
+Once validation is complete, the final step is to integrate the OpenTelemetry SDK (`packages/telemetry/src/otel.ts`) into your actual AI agents instead of just the simulation script.
+
+- Install the telemetry package into your Python or Node.js agent projects.
+- Wrap agent tools, LLM calls, and retrievals with `traceStep`.
+- Provide the same `NEXT_PUBLIC_SIGNOZ_API_URL` to route production agent telemetry into this observability pipeline.

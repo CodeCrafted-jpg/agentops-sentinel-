@@ -40,7 +40,7 @@ async function runSimulation() {
         console.log("  - Executing apply-discount tool...");
         recordToolUsage(span, "discount_applicator", JSON.stringify({ code: "SUMMER25", cartValue: 120 }));
         
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, shouldFail ? 5500 : 300));
         
         if (shouldFail) {
           throw new Error("Failed to contact payment gateway: connection timeout.");

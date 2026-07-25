@@ -9,31 +9,46 @@ const signozClient = new SignozClient(
 );
 const diagnosisAgent = new DiagnosisAgent();
 
-export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<{ received: true; alertId: string }>>> {
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<{ received: true; alertId?: string }>>> {
   const body = await request.json().catch(() => null);
-  const parsed = signozWebhookPayloadSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      { data: null, error: `invalid signoz payload: ${parsed.error.message}` },
-      { status: 400 }
-    );
+  
+  // SigNoz often wraps alerts in an `alerts` array.
+  let rawAlert = body;
+  if (body && Array.isArray(body.alerts) && body.alerts.length > 0) {
+    rawAlert = body.alerts[0];
   }
 
-  const payload = parsed.data;
+  // If this is just a test ping from SigNoz, accept it gracefully.
+  if (!rawAlert || Object.keys(rawAlert).length === 0 || (body && body.receiver && !body.alerts)) {
+    return NextResponse.json({ data: { received: true }, error: null }, { status: 200 });
+  }
+
+  // Try extracting fields loosely in case the schema mismatches slightly
+  const title = rawAlert.ruleName || rawAlert.labels?.alertname || "Unknown Alert";
+  const severity = rawAlert.severity || rawAlert.labels?.severity || "critical";
+  const traceId = rawAlert.labels?.traceId || rawAlert.labels?.trace_id || null;
+  const agentName = rawAlert.labels?.serviceName || rawAlert.labels?.service || "unknown-agent";
+  const summary = rawAlert.annotations?.description || rawAlert.annotations?.summary || "Anomaly detected by rule.";
+  const status = rawAlert.status === "resolved" ? "resolved" : "open";
+  
+  // If we can't find a ruleName or labels, it's probably a test message.
+  if (!rawAlert.labels && !rawAlert.ruleName) {
+    return NextResponse.json({ data: { received: true }, error: null }, { status: 200 });
+  }
+
   const alertId = `alt_${Math.random().toString(36).substring(2, 11)}`;
 
   const alert: Alert = {
     alertId,
-    title: payload.ruleName,
-    severity: payload.severity,
-    status: "open",
-    agentName: payload.labels["serviceName"] || payload.labels["service"] || "unknown-agent",
-    ruleName: payload.ruleName,
-    traceId: payload.labels["traceId"] || null,
-    createdAt: payload.startsAt || new Date().toISOString(),
+    title,
+    severity: (["info", "warning", "critical"].includes(severity) ? severity : "critical") as Alert["severity"],
+    status,
+    agentName,
+    ruleName: title,
+    traceId,
+    createdAt: rawAlert.startsAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    summary: payload.annotations["description"] || payload.annotations["summary"] || "Anomaly detected by rule.",
+    summary,
   };
 
   await db.addAlert(alert);
