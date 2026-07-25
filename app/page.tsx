@@ -47,7 +47,7 @@ export default function LandingPage() {
         <section className="mt-20 grid gap-12 lg:grid-cols-[1.1fr,0.9fr] lg:items-center">
           <div>
             <Badge tone="signal" dot>
-              Live on SigNoz
+              <span className="animate-pulse">🟢</span> Live on SigNoz
             </Badge>
             <h1 className="mt-5 font-display text-4xl leading-[1.1] text-ink-100 text-glow sm:text-5xl">
               Watch every agent.
